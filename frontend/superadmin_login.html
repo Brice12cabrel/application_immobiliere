@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin - Création & Accès</title>
+  <link rel="stylesheet" href="css/themes/midnight.css">
+  <link rel="stylesheet" href="css/neu-auth.css">
+  <style>
+    body { 
+      background: linear-gradient(135deg, #1a1a2e, #16213e); 
+      display: grid; 
+      place-items: center; 
+      min-height: 100vh; 
+      margin: 0;
+    }
+    .super-auth {
+      width: 440px;
+      padding: 50px 40px;
+      background: #0f0f1a;
+      border-radius: 28px;
+      box-shadow: 
+        12px 12px 24px rgba(0,0,0,0.6),
+        -8px -8px 20px rgba(255,255,255,0.03),
+        inset 0 0 20px rgba(255, 71, 87, 0.1);
+      text-align: center;
+      animation: float 6s ease-in-out infinite;
+      border: 2px solid rgba(255, 71, 87, 0.3);
+    }
+    .logo { 
+      font-size: 42px; 
+      font-weight: 900; 
+      background: linear-gradient(135deg, #ff4757, #ffa502);
+      -webkit-background-clip: text; 
+      color: transparent; 
+      margin-bottom: 20px;
+    }
+    .subtitle { color: #ff6b6b; font-size: 18px; margin-bottom: 30px; font-weight: 600; }
+    .neu-input, .neu-button { width: 100%; padding: 16px; margin: 12px 0; border-radius: 16px; }
+    .neu-input { 
+      background: #1a1a2e; 
+      border: 2px solid #333; 
+      color: white;
+      box-shadow: inset 8px 8px 16px rgba(0,0,0,0.5);
+    }
+    .neu-button { 
+      background: linear-gradient(135deg, #ff4757, #ffa502); 
+      color: white; 
+      border: none; 
+      font-weight: bold; 
+      cursor: pointer;
+      box-shadow: 8px 8px 16px rgba(0,0,0,0.4);
+    }
+    .neu-button:hover { transform: translateY(-4px); }
+    .warning { color: #ffa502; font-size: 14px; margin-top: 20px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="super-auth">
+  <div class="logo">Super Admin</div>
+  <p class="subtitle">Accès propriétaire de la plateforme</p>
+
+  <!-- CRÉATION SUPER ADMIN (1ère fois) -->
+  <div id="create-section">
+    <p class="warning">Aucun Super Admin détecté. Créez le compte propriétaire :</p>
+    <input type="email" id="create-email" class="neu-input" placeholder="Votre email (propriétaire)" required>
+    <input type="password" id="create-password" class="neu-input" placeholder="Mot de passe (12+ caractères)" required minlength="12">
+    <button class="neu-button" onclick="createSuperAdmin()">Créer le Super Admin</button>
+  </div>
+
+  <!-- CONNEXION SUPER ADMIN (après création) -->
+  <div id="login-section" class="hidden">
+    <p style="color:#50fa7b; margin-bottom:20px;">Super Admin déjà créé</p>
+    <input type="email" id="login-email" class="neu-input" placeholder="Email Super Admin" required>
+    <input type="password" id="login-password" class="neu-input" placeholder="Mot de passe" required>
+    <button class="neu-button" onclick="loginSuperAdmin()">Connexion sécurisée</button>
+  </div>
+
+  <p class="warning">Cette page est réservée au propriétaire de la plateforme.</p>
+  <p style="margin-top: 20px; font-size: 12px;">
+    <a href="index.html" style="color: #58a6ff;">← Connexion classique</a>
+  </p>
+</div>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000/api';
+
+  // Vérifie si un superadmin existe déjà
+  async function checkSuperAdmin() {
+    try {
+      const res = await fetch(`${API_BASE}/check-superadmin/`);
+      const data = await res.json();
+      if (data.exists) {
+        document.getElementById('create-section').classList.add('hidden');
+        document.getElementById('login-section').classList.remove('hidden');
+      }
+    } catch (err) {
+      console.log("Première création");
+    }
+  }
+
+  // Créer le Super Admin
+  async function createSuperAdmin() {
+    const email = document.getElementById('create-email').value.trim();
+    const password = document.getElementById('create-password').value;
+
+    if (!email || password.length < 5) {
+      alert('Email + mot de passe 5+ caractères requis');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/create-superadmin/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, mot_de_passe: password })
+      });
+
+      const data = await res.json();
+
+     if (res.ok) {
+      localStorage.setItem('token', data.access);  // ← data.access, pas data.token
+      window.location.href = 'superadmin_dashboard.html';
+    }else {
+        alert(data.error || 'Erreur création');
+      }
+    } catch (err) {
+      alert('Serveur non disponible');
+    }
+  }
+
+  // Connexion Super Admin
+ async function loginSuperAdmin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) return alert('Champs requis');
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // LE BON TOKEN EST DANS data.access, PAS data.token
+      const accessToken = data.access;
+
+      localStorage.setItem('token', accessToken);
+
+      // Vérification immédiate
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.is_superuser) {
+        alert('Super Admin connecté avec succès !');
+        window.location.href = 'superadmin_dashboard.html';
+      } else {
+        alert('Accès refusé : pas Super Admin');
+        localStorage.removeItem('token');
+      }
+    } else {
+      alert(data.detail || data.error || 'Identifiants incorrects');
+    }
+  } catch (err) {
+    alert('Erreur serveur');
+  }
+}
+
+  checkSuperAdmin();
+</script>
+</body>
+</html>

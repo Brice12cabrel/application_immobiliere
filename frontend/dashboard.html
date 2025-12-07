@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MonApp - Location de maisons</title>
+  <link rel="stylesheet" href="css/themes/midnight.css">
+  <link rel="stylesheet" href="css/neu-auth.css">
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+    .sidebar {
+      width: 280px;
+      background: var(--card);
+      padding: 30px 20px;
+      box-shadow: var(--neumo-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    .logo { 
+      font-size: 28px; 
+      font-weight: 800; 
+      text-align: center; 
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #58a6ff, #8b5cf6);
+      -webkit-background-clip: text; 
+      background-clip: text; 
+      color: transparent;
+    }
+    .menu-item {
+      padding: 16px 20px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: var(--neumo-inset);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+    }
+    .menu-item:hover { transform: translateY(-2px); box-shadow: var(--neumo-shadow); }
+    .menu-item.active { background: var(--accent); color: white; box-shadow: var(--neumo-shadow); }
+    .menu-item i { font-size: 20px; }
+    .main-content {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .welcome { font-size: 32px; margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: var(--neumo-shadow);
+      margin-bottom: 20px;
+    }
+    .logout { margin-top: auto; color: #f85149; }
+
+    /* Style du formulaire Devenir bailleur */
+    .neu-input-wrapper {
+      margin: 16px 0;
+      text-align: left;
+    }
+    .neu-input-wrapper label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .neu-input-wrapper input[type="file"],
+    .neu-input-wrapper input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--soft);
+      border: none;
+      border-radius: 16px;
+      color: var(--text);
+      box-shadow: var(--neumo-inset);
+    }
+    .neu-input-wrapper input:focus {
+      outline: none;
+      box-shadow: var(--neumo-inset), 0 0 0 4px rgba(88,166,255,0.2);
+    }
+    .content-section { display: none; }
+    .content-section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- MENU LATÉRAL AVEC ICÔNES FONT AWESOME -->
+<div class="sidebar">
+  <div class="logo">MonApp</div>
+  
+  <div class="menu-item active" data-page="home">
+    <i class="fas fa-home"></i> Accueil
+  </div>
+  <div class="menu-item" data-page="listings">
+    <i class="fas fa-search"></i> Rechercher un bien
+  </div>
+  <div class="menu-item" data-page="my-rentals">
+    <i class="fas fa-key"></i> Mes locations
+  </div>
+  <div class="menu-item" data-page="favorites">
+    <i class="fas fa-heart"></i> Favoris
+  </div>
+  <div class="menu-item" data-page="messages">
+    <i class="fas fa-envelope"></i> Messages
+  </div>
+  <div class="menu-item" data-page="profile">
+    <i class="fas fa-user"></i> Mon profil
+  </div>
+
+  <div class="menu-item" id="open-become-bailleur">
+    <i class="fas fa-building-user"></i> Devenir bailleur
+  </div>
+
+  <div class="menu-item logout" onclick="logout()">
+    <i class="fas fa-sign-out-alt"></i> Déconnexion
+  </div>
+</div>
+
+  <!-- CONTENU PRINCIPAL -->
+  <div class="main-content">
+    <h1 class="welcome">Bienvenue, <span id="user-name">Utilisateur</span> !</h1>
+    
+    <!-- Contenu par défaut -->
+    <div id="content-area">
+      <div class="card">
+        <h2>Tableau de bord</h2>
+        <p>Choisis un module dans le menu à gauche pour commencer.</p>
+        <p><strong>Rôle :</strong> <span id="user-role">locataire</span></p>
+      </div>
+    </div>
+
+    <!-- MODULE DEVENIR BAILLEUR -->
+    <div class="content-section" id="become-bailleur-section">
+      <div class="card">
+        <h2 class="welcome">Devenir bailleur</h2>
+        <p>Pour poster des annonces, vous devez devenir bailleur.</p>
+        <p>Envoyez votre CNI et votre titre foncier pour validation.</p>
+
+        <form id="bailleur-form" enctype="multipart/form-data">
+          <div class="neu-input-wrapper">
+            <label>Pièce d'identité (CNI)</label>
+            <input type="file" id="cni" accept=".pdf,.jpg,.jpeg,.png" required>
+          </div>
+
+          <div class="neu-input-wrapper">
+            <label>Titre foncier ou acte de propriété</label>
+            <input type="file" id="titre" accept=".pdf,.jpg,.jpeg,.png" required>
+          </div>
+
+          <div class="neu-input-wrapper">
+            <input type="text" id="adresse" placeholder="Adresse complète" required>
+          </div>
+
+          <div class="neu-input-wrapper">
+            <input type="text" id="ville" placeholder="Ville (ex: Douala)" required>
+          </div>
+
+          <button type="submit" class="neu-button" style="margin-top: 20px; width: 100%;">
+            Envoyer ma demande
+          </button>
+        </form>
+
+        <div id="bailleur-status" style="margin-top: 20px; font-weight: 600; text-align: center;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('Non connecté !');
+    window.location.href = 'index.html';
+  }
+
+  // Affichage des infos utilisateur
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    document.getElementById('user-name').textContent = payload.email?.split('@')[0] || 'Utilisateur';
+    document.getElementById('user-role').textContent = payload.role || 'locataire';
+  } catch (e) { console.error('Token invalide'); }
+
+  // Navigation dans le menu
+  document.querySelectorAll('.menu-item').forEach(item => {
+    if (item.classList.contains('logout')) return;
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      
+      if (item.id === 'open-become-bailleur') {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('become-bailleur-section').classList.add('active');
+        checkBailleurStatus();
+      } else {
+        const page = item.dataset.page;
+        loadPage(page);
+      }
+    });
+  });
+
+  function loadPage(page) {
+    const area = document.getElementById('content-area');
+    const pages = {
+      home: `<div class="card"><h2>Accueil</h2><p>Bienvenue sur ton espace de location !</p></div>`,
+      listings: `<div class="card"><h2>Rechercher un bien</h2><p>Ici viendra la liste des biens disponibles.</p></div>`,
+      'my-rentals': `<div class="card"><h2>Mes locations</h2><p>Tes contrats en cours.</p></div>`,
+      favorites: `<div class="card"><h2>Favoris</h2><p>Tes biens sauvegardés.</p></div>`,
+      messages: `<div class="card"><h2>Messages</h2><p>Discussions avec les bailleurs.</p></div>`,
+      profile: `<div class="card"><h2>Profil</h2><p>Gère tes informations personnelles.</p></div>`
+    };
+    area.innerHTML = pages[page] || pages.home;
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    alert('Déconnexion réussie');
+    window.location.href = 'index.html';
+  }
+
+  // === DEVENIR BAILLEUR ===
+  async function checkBailleurStatus() {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/bailleur/status/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      const statusDiv = document.getElementById('bailleur-status');
+      if (data.is_bailleur) {
+        statusDiv.innerHTML = '<p style="color:#50fa7b">Vous êtes bailleur approuvé !</p>';
+        document.getElementById('bailleur-form').style.display = 'none';
+      } else if (data.is_bailleur_pending) {
+        statusDiv.innerHTML = '<p style="color:#f1fa8c">Demande en cours de validation...</p>';
+        document.getElementById('bailleur-form').style.display = 'none';
+      } else {
+        statusDiv.innerHTML = '';
+        document.getElementById('bailleur-form').style.display = 'block';
+      }
+    } catch (err) {
+      console.error("Erreur statut bailleur");
+    }
+  }
+
+  document.getElementById('bailleur-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('cni', document.getElementById('cni').files[0]);
+    formData.append('titre_foncier', document.getElementById('titre').files[0]);
+    formData.append('adresse', document.getElementById('adresse').value);
+    formData.append('ville', document.getElementById('ville').value);
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/bailleur/apply/', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert('Demande envoyée ! L\'admin va la valider bientôt.');
+        checkBailleurStatus();
+      } else {
+        alert(data.error || 'Erreur lors de l\'envoi');
+      }
+    } catch (err) {
+      alert('Erreur réseau. Le serveur est-il lancé ?');
+    }
+  });
+
+  // Chargement initial
+  loadPage('home');
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuromorphic Auth</title>
+
+  <!-- Import du CSS (change le thème ici) -->
+  <link rel="stylesheet" href="css/themes/midnight.css"> <!-- ou ocean.css, sunset.css -->
+  <link rel="stylesheet" href="css/neu-auth.css">
+</head>
+<body>
+
+<div class="neu-auth" data-theme="midnight">
+  <div class="logo" id="logo">MonApp</div>
+
+  <div class="tabs">
+    <div class="tab active" data-screen="login">Connexion</div>
+    <div class="tab" data-screen="signup">Inscription</div>
+  </div>
+
+  <!-- Connexion -->
+  <div id="login">
+    <input class="neu-input" type="email" placeholder="Email" required>
+    <input class="neu-input" type="password" placeholder="Mot de passe" required>
+    <button class="neu-button">Se connecter</button>
+    <div class="link" data-action="forgot">Mot de passe oublié ?</div>
+  </div>
+
+  <!-- Inscription -->
+  <div id="signup" class="hidden">
+    <input class="neu-input" type="email" id="signup-email" placeholder="Email" required>
+    <input class="neu-input" type="password" id="signup-pass" placeholder="Mot de passe (8+ caractères)" required minlength="8">
+    <input class="neu-input" type="password" id="signup-confirm" placeholder="Confirmer le mot de passe" required>
+    <div class="error hidden" id="pass-error">Les mots de passe ne correspondent pas</div>
+    <button class="neu-button">Créer mon compte</button>
+  </div>
+
+  <!-- Vérification code 7 chiffres -->
+  <div id="verify" class="hidden">
+    <div class="success">Code envoyé !</div>
+    <p class="text-center">Entrez le code à 7 chiffres reçu par email</p>
+    <div class="code-inputs">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+      <input type="text" class="code-input" maxlength="1">
+    </div>
+    <button class="neu-button">Vérifier</button>
+    <div class="link" data-action="resend">Renvoyer le code</div>
+  </div>
+
+  <!-- Mot de passe oublié -->
+  <div id="forgot" class="hidden">
+    <input class="neu-input" type="email" placeholder="Email de récupération" required>
+    <button class="neu-button">Envoyer le lien</button>
+    <div class="link" data-action="back">Retour à la connexion</div>
+  </div>
+</div>
+
+<script src="js/neu-auth.js"></script>
+</body>
+</html>

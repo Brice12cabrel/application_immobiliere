@@ -1,0 +1,11 @@
+/* css/themes/midnight.css */
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --soft: #21262d;
+  --text: #e6edf3;
+  --accent: #58a6ff;
+  --accent2: #8b5cf6;
+  --success: #238636;
+  --error: #f85149;
+}
