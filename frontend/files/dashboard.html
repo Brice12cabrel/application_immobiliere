@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MonApp - Tableau de bord</title>
+  <link rel="stylesheet" href="css/themes/midnight.css">
+  <link rel="stylesheet" href="css/neu-auth.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root { 
+      --bg: #0d1117; --card: #161b22; --text: #e6edf3; 
+      --accent: #58a6ff; --success: #50fa7b; --danger: #f85149; --warning: #f1fa8c;
+    }
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 280px; background: var(--card); padding: 30px 20px; box-shadow: 8px 0 20px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .logo { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 40px; background: linear-gradient(135deg, #58a6ff, #8b5cf6); -webkit-background-clip: text; color: transparent; }
+    .menu-item { padding: 16px 20px; border-radius: 16px; cursor: pointer; transition: all 0.3s; box-shadow: inset 6px 6px 12px rgba(0,0,0,0.4); font-weight: 600; display: flex; align-items: center; gap: 14px; }
+    .menu-item:hover { transform: translateY(-2px); box-shadow: 8px 8px 16px rgba(0,0,0,0.3); }
+    .menu-item.active { background: var(--accent); color: white; }
+    .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+    .header { margin-bottom: 30px; }
+    .card { background: var(--card); padding: 30px; border-radius: 20px; box-shadow: 8px 8px 16px rgba(0,0,0,0.3); margin-bottom: 30px; }
+    .pending-notice { background: #713f12; color: #fff; padding: 20px; border-radius: 16px; text-align: center; font-weight: bold; margin-bottom: 20px; }
+    .form-group { margin: 20px 0; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 14px; border-radius: 12px; border: none; background: #21262d; color: white; box-shadow: inset 6px 6px 12px rgba(0,0,0,0.4);
+    }
+    .btn { padding: 14px 28px; background: var(--accent); color: white; border: none; border-radius: 16px; cursor: pointer; font-weight: bold; }
+    .btn-success { background: var(--success); color: black; }
+    .btn-danger { background: var(--danger); }
+    .listing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+    .listing-card { background: #21262d; border-radius: 16px; overflow: hidden; box-shadow: 8px 8px 16px rgba(0,0,0,0.3); transition: 0.3s; cursor: pointer; }
+    .listing-card:hover { transform: translateY(-8px); }
+    .listing-img { width: 100%; height: 200px; object-fit: cover; }
+    .listing-info { padding: 16px; }
+    .listing-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .listing-price { font-size: 22px; color: var(--success); font-weight: bold; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">IMMO_menu</div>
+
+  <div class="menu-item active" data-page="home">Accueil</div>
+  <div class="menu-item" data-page="search">Rechercher un bien</div>
+  <div class="menu-item" data-page="favorites">Favoris</div>
+  <div class="menu-item" data-page="messages">Messages</div>
+
+  <!-- BAILLEUR — CORRIGÉ AVEC data-page -->
+  <div class="menu-item hidden" id="my-listings" data-page="my-listings">Mes annonces</div>
+  <div class="menu-item hidden" id="create-listing" data-page="create-listing">Publier une annonce</div>
+
+  <!-- DEVENIR BAILLEUR — ON GARDE id (car géré à part) -->
+  <div class="menu-item" id="become-bailleur">Devenir bailleur</div>
+
+  <div class="menu-item" data-page="profile">Profil</div>
+  <div class="menu-item logout" onclick="logout()">Déconnexion</div>
+</div>
+
+<div class="main-content">
+  <div class="header">
+    <h1>Bienvenue, <span id="user-name">...</span> !</h1>
+    <p>Rôle : <strong id="user-role">locataire</strong></p>
+  </div>
+
+  <!-- DEVENIR BAILLEUR -->
+  <div id="become-bailleur-section" class="hidden">
+    <div class="card">
+      <h2>Devenir bailleur</h2>
+      <div id="bailleur-status"></div>
+      <form id="bailleur-form" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>CNI (PDF ou image)</label>
+          <input type="file" id="cni" accept=".pdf,.jpg,.jpeg,.png" required>
+        </div>
+        <div class="form-group">
+          <label>Titre foncier</label>
+          <input type="file" id="titre" accept=".pdf,.jpg,.jpeg,.png" required>
+        </div>
+        <div class="form-group">
+          <input type="text" id="adresse" placeholder="Adresse complète" required>
+        </div>
+        <div class="form-group">
+          <input type="text" id="ville" placeholder="Ville" required>
+        </div>
+        <button type="submit" class="btn" style="width:100%;padding:16px;">Envoyer la demande</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="content-area">
+    <div class="card">
+      <h2>Tableau de bord</h2>
+      <p>Choisis une option dans le menu.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/dashbord.js"></script>
+</body>
+</html>

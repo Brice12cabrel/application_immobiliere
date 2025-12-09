@@ -4,8 +4,9 @@ from .views import (
     RegisterView, SendOTPView, VerifyOTPView,
     ForgotPasswordView, ResetPasswordView,
     BecomeBailleurView, ApproveBailleurView, BailleurStatusView,
-    check_superadmin_exists, create_superadmin,  # ← BIEN ICI
-    list_users, set_role, create_user, delete_user
+    check_superadmin_exists, create_superadmin,  
+    list_users, set_role, create_user, delete_user,
+    pending_bailleur_requests,reject_bailleur,
 )
 from .utils import CustomTokenObtainPairView
 
@@ -21,7 +22,8 @@ urlpatterns = [
     path('bailleur/apply/', BecomeBailleurView.as_view()),
     path('bailleur/status/', BailleurStatusView.as_view()),
     path('admin/bailleur/approve/<int:user_id>/', ApproveBailleurView.as_view()),
-
+    path('admin/pending-bailleur/', pending_bailleur_requests, name='pending_bailleur'),
+    path('admin/bailleur/reject/<int:user_id>/', reject_bailleur, name='reject_bailleur'),
     # SUPER ADMIN
     path('check-superadmin/', check_superadmin_exists),
     path('create-superadmin/', create_superadmin),

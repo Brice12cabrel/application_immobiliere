@@ -19,7 +19,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',   
     'corsheaders',
-    'auth_api',        # ← mon app s'appelle  auth_api
+    'auth_api',    
+    'listings',
+   
 ]
 
 MIDDLEWARE = [

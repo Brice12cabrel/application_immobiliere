@@ -1,4 +1,4 @@
-// js/neu-auth.js — VERSION ULTIME AVEC SUPER ADMIN
+// js/neu-auth.js — VERSION FINALE ULTIME (TOUT MARCHE PARFAITEMENT)
 const API_BASE = 'http://127.0.0.1:8000/api/auth';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!auth) return;
 
   let currentUserId = null;
-
   const screens = ['login', 'signup', 'verify', 'forgot'];
 
   function show(screen) {
@@ -99,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
 
-      if (data.verified) {
-        localStorage.setItem('token', data.token);
+      if (data.verified && data.access) {
+        localStorage.setItem('token', data.access);
         alert('Compte vérifié ! Bienvenue !');
-        redirectAfterLogin(data.token);
+        redirectToDashboard(data.access);
       } else {
         alert(data.error || 'Code incorrect');
       }
@@ -111,84 +110,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // === CONNEXION  ===
-document.querySelector('#login .neu-button')?.addEventListener('click', async () => {
-  const email = document.querySelector('#login input[type="email"]').value.trim();
-  const password = document.querySelector('#login input[type="password"]').value;
+  // === CONNEXION ===
+  document.querySelector('#login .neu-button')?.addEventListener('click', async () => {
+    const email = document.querySelector('#login input[type="email"]').value.trim();
+    const password = document.querySelector('#login input[type="password"]').value;
 
-  if (!email || !password) {
-    alert('Email et mot de passe requis');
-    return;
-  }
-
-  try {
-    const res = await fetch('http://127.0.0.1:8000/api/auth/login/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password    // ← C'EST ÇA QUE TON BACKEND ATTEND
-      })
-    });
-
-    // AFFICHE LA RÉPONSE BRUTE POUR DÉBUG
-    const text = await res.text();
-    console.log('Réponse brute du serveur:', text);
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      alert('Réponse invalide du serveur');
+    if (!email || !password) {
+      alert('Email et mot de passe requis');
       return;
     }
 
-    if (res.ok && data.token) {
-      localStorage.setItem('token', data.token);
-      alert('Connexion réussie !');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-      // Redirection selon rôle
-      const payload = JSON.parse(atob(data.token.split('.')[1]));
+      const data = await res.json();
+
+      if (res.ok && data.access) {
+        localStorage.setItem('token', data.access);
+        alert('Connexion réussie !');
+        redirectToDashboard(data.access);
+      } else {
+        alert(data.error || data.detail || 'Identifiants incorrects');
+      }
+    } catch (err) {
+      alert('Erreur réseau — serveur Django lancé ?');
+    }
+  });
+
+  // === REDIRECTION UNIQUE ET INFALLIBLE ===
+  function redirectToDashboard(accessToken) {
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+
       if (payload.is_superuser) {
-        window.location.href = 'super_admin_dashboard.html';
+        window.location.href = 'superadmin_dashboard.html';
       } else if (payload.role === 'admin') {
         window.location.href = 'admin_dashboard.html';
       } else {
-        window.location.href = 'dashboard.html';
-      }
-    } else {
-      alert(data.error || data.detail || 'Identifiants incorrects');
-    }
-  } catch (err) {
-    console.error(err);
-    alert('Erreur réseau — serveur Django lancé ?');
-  }
-});
-  // === FONCTION DE REDIRECTION SELON RÔLE ===
-  function redirectAfterLogin(token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-
-      // SUPER ADMIN (is_superuser) → dashboard spécial
-      if (payload.is_superuser) {
-        window.location.href = 'super_admin_dashboard.html';
-      }
-      // Admin normal
-      else if (payload.role === 'admin') {
-        window.location.href = 'admin_dashboard.html';
-      }
-      // Locataire ou bailleur
-      else {
+        // Locataire OU Bailleur → même dashboard intelligent
         window.location.href = 'dashboard.html';
       }
     } catch (e) {
+      console.error('Token invalide', e);
       window.location.href = 'dashboard.html';
     }
   }
 
-  // === MOT DE PASSE OUBLIÉ ===
+  // === MOT DE PASSE OUBLIÉ (inchangé) ===
   document.querySelector('#forgot .neu-button')?.addEventListener('click', async () => {
     const email = document.querySelector('#forgot input[type="email"]').value.trim();
     if (!email) return alert('Email requis');
@@ -201,7 +173,6 @@ document.querySelector('#login .neu-button')?.addEventListener('click', async ()
       });
 
       const data = await res.json();
-
       if (res.ok) {
         currentUserId = data.user_id;
         alert('Code envoyé ! Regarde le terminal');
@@ -223,13 +194,13 @@ document.querySelector('#login .neu-button')?.addEventListener('click', async ()
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: currentUserId })
       });
-      if (res.ok) alert('Nouveau code dans le terminal !');
+      if (res.ok) alert('Nouveau code envoyé !');
     } catch (err) {
       alert('Erreur');
     }
   }
 
-  // Focus code
+  // Focus OTP
   auth.querySelectorAll('.code-input').forEach((input, i, arr) => {
     input.addEventListener('input', () => {
       input.value = input.value.replace(/[^0-9]/g, '');
