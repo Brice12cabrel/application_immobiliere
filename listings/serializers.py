@@ -1,126 +1,93 @@
-# listings/serializers.py — VERSION FINALE ULTIME (100% PROPRE & FONCTIONNELLE)
 from rest_framework import serializers
-from .models import Listing, Categorie
+from .models import Listing
 from django.core.files.storage import default_storage
+from django.conf import settings  # pour MEDIA_URL
+from django.core.exceptions import ValidationError
+import imghdr  # pour vérifier le type réel de l'image
+
+ALLOWED_IMAGE_TYPES = ('jpeg', 'png', 'gif')  # types autorisés
+
+class SafeIntegerField(serializers.IntegerField):
+    def to_internal_value(self, data):
+        if data in ('', None):
+            return None
+        return super().to_internal_value(data)
+
+    def to_representation(self, value):
+        if value in ('', None):
+            return None
+        return super().to_representation(value)
 
 
-class CategorieSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Categorie
-        fields = ['id', 'nom']
-
-
-class ListingListSerializer(serializers.ModelSerializer):
-    """Serializer for listing list view (public)"""
-    categories = CategorieSerializer(many=True)
-    bailleur_nom = serializers.CharField(source='bailleur.first_name', read_only=True)
-    photo_principale = serializers.SerializerMethodField()
-    surface = serializers.IntegerField(required=False, allow_null=True)
-    chambres = serializers.IntegerField(required=False, allow_null=True)
-
-    class Meta:
-        model = Listing
-        fields = [
-            'id', 'titre', 'prix', 'ville', 'quartier', 'surface', 'chambres',
-            'meuble', 'photo_principale', 'categories', 'disponible', 'bailleur_nom',
-            'date_creation'
-        ]
-
-    def get_photo_principale(self, obj):
-        if obj.images and len(obj.images) > 0:
-            first_image = obj.images[0]
-            if first_image.startswith('http'):
-                return first_image
-            return f"http://127.0.0.1:8000/{first_image}"
-        return None
-
-    def to_representation(self, instance):
-        if instance.surface == '':
-            instance.surface = None
-        if instance.chambres == '':
-            instance.chambres = None
-        return super().to_representation(instance)
-
-
-class ListingDetailSerializer(serializers.ModelSerializer):
-    """Serializer for listing detail view (authenticated users see full info)"""
-    categories = CategorieSerializer(many=True)
-    bailleur = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Listing
-        fields = [
-            'id', 'titre', 'description', 'prix',
-            'ville', 'quartier', 'adresse_complete',
-            'surface', 'chambres', 'meuble',
-            'images', 'categories', 'disponible',
-            'date_creation', 'date_modification',
-            'bailleur'
-        ]
-
-    def get_images(self, obj):
-        if obj.images:
-            return [f"http://127.0.0.1:8000/{img}" if not img.startswith('http') else img for img in obj.images]
-        return []
-
-    def get_bailleur(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return {
-                "nom": obj.bailleur.first_name or "Anonyme",
-                "telephone": getattr(obj.bailleur, 'phone_number', 'N/A'),
-                "email": obj.bailleur.email
-            }
-        return {"nom": "Anonyme", "telephone": None, "email": None}
-
-    def to_representation(self, instance):
-        if instance.surface == '':
-            instance.surface = None
-        if instance.chambres == '':
-            instance.chambres = None
-        return super().to_representation(instance)
-
-
-class ListingCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating listings with image uploads"""
+class ListingSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(),
         write_only=True,
-        required=False,
-        max_length=10
-    )
-    categories = serializers.PrimaryKeyRelatedField(
-        queryset=Categorie.objects.all(),
-        many=True,
         required=False
     )
+
+    photos = serializers.SerializerMethodField(read_only=True)
+
+    surface = SafeIntegerField(required=False, allow_null=True)
+    chambres = SafeIntegerField(required=False, allow_null=True)
+    salles_de_bain = SafeIntegerField(required=False, allow_null=True)
+    etage = SafeIntegerField(required=False, allow_null=True)
+    annee_construction = SafeIntegerField(required=False, allow_null=True)
+    caution = SafeIntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Listing
         fields = [
-            'titre', 'description', 'prix',
+            'id', 'titre', 'description', 'prix', 'caution', 'disponible',
             'ville', 'quartier', 'adresse_complete',
-            'surface', 'chambres', 'meuble',
-            'images', 'categories'
+            'surface', 'chambres', 'salles_de_bain', 'etage', 'annee_construction',
+            'meuble', 'climatisation', 'chauffage', 'balcon', 'jardin', 'parking', 'piscine',
+            'wifi', 'television', 'machine_a_laver', 'cuisine_equipee',
+            'images', 'photos', 'bailleur',
+            'date_creation', 'date_modification', 'date_disponibilite'
         ]
+        read_only_fields = ['bailleur', 'date_creation', 'date_modification']
+
+    def get_photos(self, obj):
+        """Retourne les URLs complètes pour le frontend"""
+        return [settings.MEDIA_URL + path for path in (obj.images or [])]
+
+    def validate_images(self, images):
+        """Vérifie que chaque image est bien un jpeg/png/gif"""
+        for img in images:
+            img_type = imghdr.what(img.file)
+            if img_type not in ALLOWED_IMAGE_TYPES:
+                raise ValidationError(
+                    f"Type d'image non autorisé: {img_type}. Seuls les types {ALLOWED_IMAGE_TYPES} sont acceptés."
+                )
+        return images
 
     def create(self, validated_data):
         images = validated_data.pop('images', [])
-        categories = validated_data.pop('categories', [])
-
+        validated_data['disponible'] = True
         listing = Listing.objects.create(**validated_data)
 
-        # SAVE actual image files to media/listings/
-        image_urls = []
+        saved_images = listing.images or []
         for img in images:
             path = default_storage.save(f'listings/{img.name}', img)
-            image_urls.append(path)
+            saved_images.append(path)
 
-        listing.images = image_urls
-
-        if categories:
-            listing.categories.set(categories)
-
+        listing.images = saved_images
         listing.save()
         return listing
+
+    def update(self, instance, validated_data):
+        images = validated_data.pop('images', [])
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if images:
+            saved_images = instance.images or []
+            for img in images:
+                path = default_storage.save(f'listings/{img.name}', img)
+                saved_images.append(path)
+            instance.images = saved_images
+
+        instance.save()
+        return instance
